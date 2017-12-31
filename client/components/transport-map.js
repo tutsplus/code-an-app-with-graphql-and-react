@@ -48,13 +48,47 @@ class TransportMap extends Component {
 
   renderStations() {
     let stops = this.props.data.stops;
+    let nowInUnix = Math.floor(Date.now() / 1000);
 
-    return stops.map(({ id, name, lat, lon }) => {
+    return stops.map(({ id, name, lat, lon, routes, realTimeInfo }) => {
+      let realTimeData = realTimeInfo.map(({ serviceDay, realtimeDeparture, realtime, headsign, trip }) => {
+        let route = trip.pattern.route;
+        let formattedTime = "";
+        let timeDelta = Math.round((serviceDay + realtimeDeparture - nowInUnix) / 60);
+
+        if (timeDelta < 15) {
+          formattedTime = timeDelta < 1 ? "now" : `${timeDelta} min`;
+        } else {
+          let absoluteTime = new Date((serviceDay + realtimeDeparture) * 1000);
+          formattedTime = `${absoluteTime.getHours()}:${("0" + absoluteTime.getMinutes()).slice(-2)}`;
+        }
+
+        return (
+          <div className="real-time-entry" key={`${realtimeDeparture}-${route.shortName}`}>
+            <span className={["real-time-time", realtime ? "updated" : null].join(" ")}>
+              {formattedTime}
+            </span>
+            <span className={["real-time-line", route.mode.toLowerCase()].join(" ")}>
+              {route.shortName}
+            </span>
+            <span className="real-time-direction">
+              {headsign ? headsign : "Arriving / Terminating"}
+            </span>
+          </div>
+        );
+      });
+
       return (
         <Marker position={[lat, lon]} key={id}>
           <Popup>
             <div>
               <div><strong>{name}</strong></div>
+              <div>
+                Stops: {routes.map((r) => r.shortName).join(", ")}
+              </div>
+              <div className="real-time">
+                {realTimeData}
+              </div>
             </div>
           </Popup>
         </Marker>
@@ -70,6 +104,25 @@ const query = gql`
       name
       lat
       lon
+
+      realTimeInfo: stoptimesWithoutPatterns {
+        realtimeDeparture
+        realtime
+        serviceDay
+        headsign
+        trip {
+          pattern {
+            route {
+              mode
+              shortName
+            }
+          }
+        }
+      }
+
+      routes {
+        shortName
+      }
     }
   }
 `;
