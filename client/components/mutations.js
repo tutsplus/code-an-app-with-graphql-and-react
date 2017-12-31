@@ -71,6 +71,7 @@ class Mutations extends Component {
           </div>
         </div>
         <hr />
+        {this.props.data.error ? (<p className="alert alert-danger">{this.props.data.error.message}</p>) : null}
         <ul>{characters}</ul>
       </div>
     );
@@ -81,7 +82,7 @@ const query = gql`
   query GetCharacters {
     characters {
       id
-      name
+      names
 
       ...on Human {
         homePlanet
